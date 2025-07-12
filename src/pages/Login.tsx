@@ -42,23 +42,24 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/50 p-4">
-      <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="absolute inset-0 bg-grid opacity-20" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-transparent to-accent/5" />
       
-      <Card className="w-full max-w-md relative border-2 bg-background/80 backdrop-blur">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
+      <Card className="w-full max-w-md relative border-border/50 bg-card/95 backdrop-blur shadow-lg hover:shadow-xl transition-shadow animate-scale-in">
+        <CardHeader className="text-center space-y-4 pb-8">
+          <CardTitle className="text-2xl font-bold text-card-foreground">
             Welcome back to <AnimatedGradientText>ReWear</AnimatedGradientText>
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-muted-foreground">
             Sign in to continue your sustainable fashion journey
           </CardDescription>
         </CardHeader>
         
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -67,14 +68,14 @@ export function Login() {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 focus-ring border-input bg-background text-foreground placeholder:text-muted-foreground"
                   required
                 />
               </div>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-foreground font-medium">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -83,33 +84,37 @@ export function Login() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
+                  className="pl-10 pr-10 focus-ring border-input bg-background text-foreground placeholder:text-muted-foreground"
                   required
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground hover:text-foreground"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    <EyeOff className="h-4 w-4" />
                   ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    <Eye className="h-4 w-4" />
                   )}
                 </Button>
               </div>
             </div>
             
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full focus-ring hover-lift bg-primary text-primary-foreground hover:bg-primary/90" 
+              disabled={loading}
+            >
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
           
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-8 text-center text-sm">
             <span className="text-muted-foreground">Don't have an account? </span>
-            <Link to="/signup" className="font-medium text-primary hover:underline">
+            <Link to="/signup" className="link font-medium text-primary hover:text-primary/80">
               Sign up
             </Link>
           </div>
