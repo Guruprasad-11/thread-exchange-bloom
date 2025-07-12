@@ -81,13 +81,8 @@ export function AddItem() {
       await createItem.mutateAsync({
         ...formData,
         user_id: user.id,
-        image_urls: images,
-        status: 'pending'
-      });
-
-      toast({
-        title: "Item submitted successfully!",
-        description: "Your item is now under review and will be live soon.",
+        image_urls: images.length > 0 ? images : ['https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=400&h=500&fit=crop'], // Default image if none uploaded
+        status: 'approved' // Auto-approve for demo
       });
 
       navigate('/dashboard');
@@ -343,7 +338,7 @@ export function AddItem() {
                   <div className="space-y-2">
                     <h3 className="font-semibold">Ready to list your item?</h3>
                     <p className="text-sm text-muted-foreground">
-                      Your item will be reviewed by our team before going live. This usually takes 24-48 hours.
+                      Your item will be created and immediately available for others to see and request swaps.
                     </p>
                   </div>
                   
@@ -356,7 +351,7 @@ export function AddItem() {
                       disabled={!formData.title || !formData.category || !formData.condition || isSubmitting}
                       className="hover-lift"
                     >
-                      {isSubmitting ? 'Submitting...' : 'Submit for Review'}
+                      {isSubmitting ? 'Creating...' : 'Create Item'}
                     </Button>
                   </div>
                 </div>

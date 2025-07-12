@@ -123,6 +123,12 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
+          ) : user ? (
+            // User is authenticated but profile is still loading
+            <div className="flex items-center space-x-2">
+              <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+              <span className="text-sm text-muted-foreground">Loading...</span>
+            </div>
           ) : (
             <div className="flex items-center space-x-2">
               <Button asChild variant="ghost">

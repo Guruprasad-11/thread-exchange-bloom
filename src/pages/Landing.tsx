@@ -6,35 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { AnimatedGradientText } from '@/components/ui/animated-gradient-text';
 import { FloatingCard } from '@/components/ui/floating-card';
 import { ArrowRight, Recycle, Users, Sparkles, Heart, Leaf, Star } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
+import { getItemsWithProfiles } from '@/lib/demo-data';
+import { ItemDetailModal } from '@/components/ItemDetailModal';
 
-const featuredItems = [
-  {
-    id: 1,
-    title: "Vintage Denim Jacket",
-    image: "/placeholder.svg",
-    condition: "Good",
-    points: 75,
-    category: "Outerwear"
-  },
-  {
-    id: 2,
-    title: "Designer Summer Dress",
-    image: "/placeholder.svg",
-    condition: "Like New",
-    points: 120,
-    category: "Dresses"
-  },
-  {
-    id: 3,
-    title: "Sustainable Cotton Tee",
-    image: "/placeholder.svg",
-    condition: "New",
-    points: 45,
-    category: "Tops"
-  }
-];
+// Get featured items from demo data
+const demoItemsWithProfiles = getItemsWithProfiles();
+const featuredItems = demoItemsWithProfiles.slice(0, 3); // Take first 3 items
 
 const features = [
   {
@@ -58,6 +37,8 @@ export function Landing() {
   const heroRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<HTMLDivElement>(null);
+  const [selectedItem, setSelectedItem] = useState<typeof featuredItems[0] | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   useEffect(() => {
     if (heroRef.current) {
@@ -204,12 +185,12 @@ export function Landing() {
               <Card key={item.id} className="overflow-hidden hover-lift border-border/50 hover:border-primary/30 transition-all duration-300">
                 <div className="aspect-square bg-muted relative overflow-hidden">
                   <img 
-                    src={item.image} 
+                    src={item.image_urls[0]} 
                     alt={item.title}
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                   />
                   <Badge className="absolute top-3 left-3 bg-background/90 text-foreground border-border/50">
-                    {item.condition}
+                    {item.condition.replace('_', ' ').toUpperCase()}
                   </Badge>
                 </div>
                 <CardContent className="p-6">
@@ -218,11 +199,18 @@ export function Landing() {
                       {item.title}
                     </h3>
                     <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                      {item.points} pts
+                      {item.point_value} pts
                     </Badge>
                   </div>
-                  <p className="text-muted-foreground text-sm mb-4">{item.category}</p>
-                  <Button className="w-full focus-ring hover-lift" variant="outline">
+                  <p className="text-muted-foreground text-sm mb-4 capitalize">{item.category}</p>
+                  <Button 
+                    className="w-full focus-ring hover-lift" 
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setIsDetailModalOpen(true);
+                    }}
+                  >
                     View Details
                   </Button>
                 </CardContent>
@@ -240,6 +228,18 @@ export function Landing() {
           </div>
         </div>
       </section>
+
+      {/* Item Detail Modal */}
+      {selectedItem && (
+        <ItemDetailModal
+          item={selectedItem}
+          isOpen={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedItem(null);
+          }}
+        />
+      )}
 
       {/* CTA Section */}
       <section className="py-20 px-4 bg-gradient-primary text-primary-foreground">

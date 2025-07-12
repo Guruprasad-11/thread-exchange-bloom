@@ -20,13 +20,20 @@ export function Signup() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const createTestAccount = () => {
+    setEmail('john123@gmail.com');
+    setPassword('john123');
+    setUsername('john');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password.length < 6) {
+    // Simple validation - just check if fields are not empty
+    if (!email || !password || !username) {
       toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
+        title: "Missing information",
+        description: "Please fill in all fields.",
         variant: "destructive",
       });
       return;
@@ -37,14 +44,15 @@ export function Signup() {
     try {
       await signUp(email, password, username);
       toast({
-        title: "Welcome to ReWear!",
-        description: "Your account has been created successfully. Check your email to confirm your account.",
+        title: "Account created!",
+        description: "Your account has been created successfully. Welcome to ReWear!",
       });
       navigate('/dashboard');
     } catch (error: any) {
+      console.error('Signup error:', error);
       toast({
         title: "Sign up failed",
-        description: error.message || "Please try again with different details.",
+        description: "Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -108,7 +116,7 @@ export function Signup() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Create a password (min. 6 characters)"
+                  placeholder="Create a password (any password works)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10 focus-ring border-input bg-background text-foreground placeholder:text-muted-foreground"
@@ -136,6 +144,16 @@ export function Signup() {
               disabled={loading}
             >
               {loading ? "Creating account..." : "Create Account"}
+            </Button>
+            
+            <Button 
+              type="button" 
+              variant="outline"
+              className="w-full"
+              onClick={createTestAccount}
+              disabled={loading}
+            >
+              Fill Test Account (john/john123@gmail.com/john123)
             </Button>
           </form>
           

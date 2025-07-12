@@ -19,8 +19,24 @@ export function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const fillTestAccount = () => {
+    setEmail('john123@gmail.com');
+    setPassword('john123');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Simple validation
+    if (!email || !password) {
+      toast({
+        title: "Missing information",
+        description: "Please enter your email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -30,10 +46,11 @@ export function Login() {
         description: "You've successfully signed in to ReWear.",
       });
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Login error:', error);
       toast({
         title: "Sign in failed",
-        description: "Please check your email and password and try again.",
+        description: "Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -109,6 +126,16 @@ export function Login() {
               disabled={loading}
             >
               {loading ? "Signing in..." : "Sign In"}
+            </Button>
+            
+            <Button 
+              type="button" 
+              variant="outline"
+              className="w-full"
+              onClick={fillTestAccount}
+              disabled={loading}
+            >
+              Fill Test Account (john123@gmail.com/john123)
             </Button>
           </form>
           
