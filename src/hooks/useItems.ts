@@ -3,10 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ItemWithProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
+
+type ItemCategory = Database['public']['Enums']['item_category'];
+type ClothingSize = Database['public']['Enums']['clothing_size'];
 
 export function useItems(filters?: {
-  category?: string;
-  size?: string;
+  category?: ItemCategory;
+  size?: ClothingSize;
   tags?: string[];
   search?: string;
 }) {
