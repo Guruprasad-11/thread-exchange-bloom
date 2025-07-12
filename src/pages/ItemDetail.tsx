@@ -1,33 +1,42 @@
 
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCreateSwapRequest } from '@/hooks/useSwapRequests';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Heart, Share2, MapPin, Calendar, Package, ArrowRightLeft, Coins, Star, Shield } from 'lucide-react';
-import { ItemWithProfile } from '@/lib/types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  ArrowLeft, 
+  Heart, 
+  Share2, 
+  MessageCircle, 
+  MapPin, 
+  Calendar, 
+  Package, 
+  Coins,
+  Star,
+  Shield,
+  Truck,
+  Clock
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { gsap } from 'gsap';
 
 export function ItemDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const [swapMessage, setSwapMessage] = useState('');
-  const [selectedOfferType, setSelectedOfferType] = useState<'item' | 'points'>('points');
-  const createSwapRequest = useCreateSwapRequest();
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
 
-  const { data: item, isLoading } = useQuery({
+  // Fetch item details
+  const { data: item, isLoading, error } = useQuery({
     queryKey: ['item', id],
     queryFn: async () => {
-      if (!id) throw new Error('Item ID is required');
-      
       const { data, error } = await supabase
         .from('items')
         .select(`
@@ -35,76 +44,57 @@ export function ItemDetail() {
           profiles (
             id,
             username,
+            full_name,
             avatar_url,
+            bio,
+            points,
             location,
-            full_name
-          ),
-          item_tags (
-            tags (
-              id,
-              name
-            )
+            created_at
           )
         `)
         .eq('id', id)
-        .eq('status', 'approved')
         .single();
 
-      if (error) throw error;
-      return data as ItemWithProfile;
+      if (error) {
+        console.error('Error fetching item:', error);
+        throw error;
+      }
+
+      return data;
     },
     enabled: !!id,
   });
 
-  const { data: userItems = [] } = useQuery({
-    queryKey: ['user-items-for-swap', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from('items')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_available', true)
-        .eq('status', 'approved');
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
-
-  const handleSwapRequest = async (offeredItemId?: string, pointsOffered?: number) => {
-    if (!item || !user) return;
-
-    try {
-      await createSwapRequest.mutateAsync({
-        requester_id: user.id,
-        owner_id: item.user_id,
-        requested_item_id: item.id,
-        offered_item_id: offeredItemId || null,
-        points_offered: pointsOffered || 0,
-        message: swapMessage,
-      });
-      setSwapMessage('');
-    } catch (error) {
-      console.error('Error creating swap request:', error);
+  useEffect(() => {
+    if (item) {
+      gsap.fromTo(
+        '.item-detail-content',
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }
+      );
     }
-  };
+  }, [item]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-accent/5">
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-8">
-            <div className="h-8 bg-muted rounded w-1/4" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="aspect-square bg-muted rounded-xl" />
-              <div className="space-y-4">
-                <div className="h-8 bg-muted rounded w-3/4" />
-                <div className="h-4 bg-muted rounded w-1/2" />
-                <div className="h-20 bg-muted rounded" />
+      <div className="min-h-screen bg-background">
+        <div className="container-apple py-8">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-8 h-8 skeleton rounded" />
+            <div className="h-6 skeleton rounded w-32" />
+          </div>
+          <div className="grid lg:grid-cols-2 gap-8">
+            <div className="aspect-square skeleton rounded-3xl" />
+            <div className="space-y-6">
+              <div className="h-8 skeleton rounded w-3/4" />
+              <div className="h-4 skeleton rounded w-1/2" />
+              <div className="h-6 skeleton rounded w-1/4" />
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="h-4 skeleton rounded" />
+                ))}
               </div>
+              <div className="h-12 skeleton rounded w-full" />
             </div>
           </div>
         </div>
@@ -112,334 +102,336 @@ export function ItemDetail() {
     );
   }
 
-  if (!item) {
+  if (error || !item) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="p-8 text-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 text-center max-w-md">
           <Package className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Item not found</h2>
+          <h2 className="text-2xl font-bold mb-2">Item Not Found</h2>
           <p className="text-muted-foreground mb-6">The item you're looking for doesn't exist or has been removed.</p>
           <Button asChild>
-            <Link to="/browse">Browse Other Items</Link>
+            <Link to="/browse">Browse Items</Link>
           </Button>
         </Card>
       </div>
     );
   }
 
-  const isOwnItem = user?.id === item.user_id;
+  const isOwner = user?.id === item.user_id;
+  const images = item.image_urls || ['/placeholder.svg'];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-accent/5">
-      <div className="container mx-auto px-4 py-8">
-        {/* Back Navigation */}
-        <Button variant="ghost" asChild className="mb-6">
-          <Link to="/browse" className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Browse
+    <div className="min-h-screen bg-background">
+      <div className="container-apple py-8">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-4 mb-8 item-detail-content">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+            className="hover-lift"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <Separator orientation="vertical" className="h-4" />
+          <Link to="/browse" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Browse
           </Link>
-        </Button>
+          <span className="text-sm text-muted-foreground">/</span>
+          <span className="text-sm text-muted-foreground capitalize">{item.category}</span>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="grid lg:grid-cols-2 gap-12 item-detail-content">
           {/* Image Gallery */}
           <div className="space-y-4">
-            <div className="aspect-square rounded-2xl overflow-hidden bg-muted shadow-xl">
-              {item.image_urls && item.image_urls.length > 0 ? (
-                <Carousel className="w-full h-full">
-                  <CarouselContent>
-                    {item.image_urls.map((url, index) => (
-                      <CarouselItem key={index}>
-                        <img 
-                          src={url} 
-                          alt={`${item.title} - Image ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  {item.image_urls.length > 1 && (
-                    <>
-                      <CarouselPrevious className="left-4" />
-                      <CarouselNext className="right-4" />
-                    </>
-                  )}
-                </Carousel>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Package className="h-24 w-24 text-muted-foreground" />
-                </div>
-              )}
+            <div className="image-container aspect-square rounded-3xl overflow-hidden">
+              <img
+                src={images[selectedImage]}
+                alt={item.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute top-4 right-4 flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="glass hover:bg-white/20"
+                  onClick={() => setIsLiked(!isLiked)}
+                >
+                  <Heart className={`h-5 w-5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="glass hover:bg-white/20"
+                >
+                  <Share2 className="h-5 w-5" />
+                </Button>
+              </div>
+              <Badge className="absolute top-4 left-4 glass">
+                {item.condition.replace('_', ' ').toUpperCase()}
+              </Badge>
             </div>
-            
-            {/* Thumbnail Strip */}
-            {item.image_urls && item.image_urls.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto">
-                {item.image_urls.map((url, index) => (
-                  <div key={index} className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-muted">
-                    <img 
-                      src={url} 
-                      alt={`Thumbnail ${index + 1}`}
-                      className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+
+            {/* Thumbnail Gallery */}
+            {images.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {images.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImage(index)}
+                    className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${
+                      index === selectedImage
+                        ? 'border-primary'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <img
+                      src={image}
+                      alt={`${item.title} ${index + 1}`}
+                      className="w-full h-full object-cover"
                     />
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Item Details */}
+          {/* Item Information */}
           <div className="space-y-6">
+            {/* Header */}
             <div>
               <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h1 className="text-3xl font-bold mb-2">{item.title}</h1>
-                  <div className="flex items-center gap-3 mb-4">
-                    <Badge variant="outline" className="capitalize">
-                      {item.category}
-                    </Badge>
-                    {item.size && (
-                      <Badge variant="outline" className="uppercase">
-                        Size {item.size}
-                      </Badge>
-                    )}
-                    <Badge className="capitalize">
-                      {item.condition?.replace('_', ' ')}
-                    </Badge>
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold mb-2 line-clamp-2">{item.title}</h1>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-4 w-4" />
+                      {item.profiles?.location || 'Location not specified'}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon">
-                    <Heart className="h-5 w-5" />
-                  </Button>
-                  <Button variant="ghost" size="icon">
-                    <Share2 className="h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border border-primary/20">
-                <div className="flex items-center gap-2">
-                  <Coins className="h-5 w-5 text-primary" />
-                  <span className="font-semibold">Point Value</span>
-                </div>
-                <Badge className="text-lg px-3 py-1 bg-primary text-primary-foreground">
-                  {item.point_value} Points
+                <Badge className="badge-info text-lg px-4 py-2">
+                  <Coins className="h-4 w-4 mr-2" />
+                  {item.point_value} pts
                 </Badge>
               </div>
-            </div>
 
-            <Separator />
+              {/* Owner Info */}
+              <Card className="card-apple">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={item.profiles?.avatar_url || ''} alt={item.profiles?.username || 'User'} />
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {item.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{item.profiles?.full_name || item.profiles?.username}</h3>
+                      <p className="text-sm text-muted-foreground">Member since {new Date(item.profiles?.created_at || '').getFullYear()}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                      <span className="text-sm font-medium">4.8</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Description */}
-            <div>
-              <h3 className="font-semibold text-lg mb-3">Description</h3>
-              <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                {item.description || 'No description provided.'}
-              </p>
-            </div>
+            <Card className="card-apple">
+              <CardHeader>
+                <CardTitle>Description</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {item.description}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Item Details */}
+            <Card className="card-apple">
+              <CardHeader>
+                <CardTitle>Item Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Category</p>
+                    <p className="font-medium capitalize">{item.category}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Type</p>
+                    <p className="font-medium capitalize">{item.type}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Size</p>
+                    <p className="font-medium">{item.size}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Condition</p>
+                    <p className="font-medium capitalize">{item.condition.replace('_', ' ')}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Tags */}
-            {item.item_tags && item.item_tags.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-lg mb-3">Tags</h3>
-                <div className="flex flex-wrap gap-2">
-                  {item.item_tags.map((itemTag) => (
-                    <Badge key={itemTag.tags.id} variant="secondary">
-                      #{itemTag.tags.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+            {item.tags && item.tags.length > 0 && (
+              <Card className="card-apple">
+                <CardHeader>
+                  <CardTitle>Tags</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {item.tags.map((tag, index) => (
+                      <Badge key={index} variant="outline" className="badge-eco">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )}
-
-            <Separator />
-
-            {/* Owner Info */}
-            <div>
-              <h3 className="font-semibold text-lg mb-3">Item Owner</h3>
-              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-xl">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={item.profiles?.avatar_url || ''} />
-                  <AvatarFallback>
-                    {item.profiles?.username?.[0]?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <p className="font-semibold">{item.profiles?.full_name || item.profiles?.username}</p>
-                  <p className="text-sm text-muted-foreground">@{item.profiles?.username}</p>
-                  {item.profiles?.location && (
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                      <MapPin className="h-3 w-3" />
-                      <span>{item.profiles.location}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 text-sm">
-                  <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                  <span>4.8</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Item Meta */}
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>Listed {new Date(item.created_at!).toLocaleDateString()}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Shield className="h-4 w-4" />
-                <span>Verified Item</span>
-              </div>
-            </div>
 
             {/* Action Buttons */}
-            {!isOwnItem && item.is_available && user && (
-              <div className="space-y-3">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button size="lg" className="w-full hover-lift">
-                      <ArrowRightLeft className="mr-2 h-5 w-5" />
-                      Request Swap
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Create Swap Request</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">Choose your offer:</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button 
-                            variant={selectedOfferType === 'points' ? 'default' : 'outline'}
-                            onClick={() => setSelectedOfferType('points')}
-                            className="h-auto p-3 flex-col gap-1"
-                          >
-                            <Coins className="h-5 w-5" />
-                            <span className="text-xs">Points</span>
-                          </Button>
-                          <Button 
-                            variant={selectedOfferType === 'item' ? 'default' : 'outline'}
-                            onClick={() => setSelectedOfferType('item')}
-                            className="h-auto p-3 flex-col gap-1"
-                          >
-                            <Package className="h-5 w-5" />
-                            <span className="text-xs">Item</span>
-                          </Button>
-                        </div>
-                      </div>
-
-                      {selectedOfferType === 'points' && (
-                        <div className="p-4 bg-muted/50 rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-2">
-                            You have {profile?.points || 0} points available
-                          </p>
-                          <Button 
-                            className="w-full"
-                            onClick={() => handleSwapRequest(undefined, item.point_value)}
-                            disabled={!profile?.points || profile.points < (item.point_value || 0)}
-                          >
-                            Offer {item.point_value} Points
-                          </Button>
-                        </div>
-                      )}
-
-                      {selectedOfferType === 'item' && (
-                        <div className="max-h-40 overflow-y-auto space-y-2">
-                          {userItems.length === 0 ? (
-                            <p className="text-sm text-muted-foreground p-4 text-center">
-                              You don't have any items to offer. 
-                              <Link to="/add-item" className="text-primary hover:underline ml-1">
-                                List an item first
-                              </Link>
-                            </p>
-                          ) : (
-                            userItems.map((userItem) => (
-                              <Button
-                                key={userItem.id}
-                                variant="outline"
-                                className="w-full justify-start h-auto p-3"
-                                onClick={() => handleSwapRequest(userItem.id)}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 bg-muted rounded">
-                                    {userItem.image_urls?.[0] && (
-                                      <img 
-                                        src={userItem.image_urls[0]} 
-                                        alt={userItem.title}
-                                        className="w-full h-full object-cover rounded"
-                                      />
-                                    )}
-                                  </div>
-                                  <div className="text-left">
-                                    <p className="font-medium text-sm">{userItem.title}</p>
-                                    <p className="text-xs text-muted-foreground">{userItem.point_value} pts</p>
-                                  </div>
-                                </div>
-                              </Button>
-                            ))
-                          )}
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">Message (optional)</label>
-                        <Textarea 
-                          placeholder="Add a personal message..."
-                          value={swapMessage}
-                          onChange={(e) => setSwapMessage(e.target.value)}
-                          rows={3}
-                        />
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-
-                <Button variant="outline" size="lg" className="w-full hover-lift">
-                  <Coins className="mr-2 h-5 w-5" />
-                  Redeem with Points ({item.point_value} pts)
-                </Button>
+            {!isOwner && item.is_available && (
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <Button className="btn-primary flex-1">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Request Swap
+                  </Button>
+                  <Button variant="outline" className="btn-secondary flex-1">
+                    <Coins className="h-4 w-4 mr-2" />
+                    Redeem with Points
+                  </Button>
+                </div>
+                
+                <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    <span>Secure Transaction</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Truck className="h-4 w-4" />
+                    <span>Free Shipping</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span>24h Response</span>
+                  </div>
+                </div>
               </div>
             )}
 
-            {isOwnItem && (
-              <div className="p-4 bg-muted/50 rounded-xl text-center">
-                <Package className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">This is your item</p>
+            {isOwner && (
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <Button variant="outline" className="btn-secondary flex-1">
+                    Edit Item
+                  </Button>
+                  <Button variant="outline" className="btn-secondary flex-1">
+                    View Requests
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground text-center">
+                  This is your item. You can edit it or view swap requests.
+                </p>
               </div>
             )}
 
-            {!user && (
-              <div className="space-y-3">
-                <Button asChild size="lg" className="w-full">
-                  <Link to="/login">Sign in to Request Swap</Link>
-                </Button>
-              </div>
+            {!item.is_available && (
+              <Card className="card-apple border-yellow-200 bg-yellow-50">
+                <CardContent className="p-4 text-center">
+                  <Package className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                  <p className="font-medium text-yellow-800">This item is no longer available</p>
+                  <p className="text-sm text-yellow-700">It may have been swapped or removed by the owner.</p>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
 
-        {/* Related Items */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Similar Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <Card key={i} className="overflow-hidden hover-lift">
-                  <div className="aspect-square bg-muted" />
-                  <CardContent className="p-3">
-                    <h4 className="font-medium text-sm mb-1">Similar Item {i + 1}</h4>
-                    <p className="text-xs text-muted-foreground">50 pts</p>
+        {/* Additional Information */}
+        <div className="mt-16 item-detail-content">
+          <Tabs defaultValue="similar" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="similar">Similar Items</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+              <TabsTrigger value="policy">Swap Policy</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="similar" className="space-y-4">
+              <p className="text-muted-foreground">Discover similar items from our community.</p>
+              <div className="card-grid-4">
+                {/* Similar items would be loaded here */}
+                <Card className="card-apple hover-lift">
+                  <div className="aspect-square skeleton rounded-xl" />
+                  <CardContent className="p-4">
+                    <div className="h-4 skeleton rounded w-3/4 mb-2" />
+                    <div className="h-3 skeleton rounded w-1/2" />
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="reviews" className="space-y-4">
+              <p className="text-muted-foreground">Reviews from other community members.</p>
+              <div className="text-center py-8">
+                <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No reviews yet for this item.</p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="policy" className="space-y-4">
+              <Card className="card-apple">
+                <CardHeader>
+                  <CardTitle>Swap Policy</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Secure Exchange</p>
+                        <p className="text-sm text-muted-foreground">All swaps are verified and secure through our platform.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Quality Assurance</p>
+                        <p className="text-sm text-muted-foreground">Items are reviewed to ensure they match the description.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Free Shipping</p>
+                        <p className="text-sm text-muted-foreground">Shipping costs are covered for all successful swaps.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">24-Hour Response</p>
+                        <p className="text-sm text-muted-foreground">Owners typically respond to swap requests within 24 hours.</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );

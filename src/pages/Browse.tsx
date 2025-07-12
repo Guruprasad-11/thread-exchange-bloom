@@ -1,205 +1,358 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Filter, MapPin, Coins } from 'lucide-react';
-import { getItemsWithProfiles } from '@/lib/demo-data';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Search, 
+  Filter, 
+  Grid3X3, 
+  List, 
+  SlidersHorizontal,
+  Package,
+  MapPin,
+  Calendar,
+  Heart
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { gsap } from 'gsap';
+
+const categories = [
+  'all', 'tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'accessories', 'jewelry', 'bags'
+];
+
+const conditions = [
+  'all', 'new', 'like_new', 'good', 'fair', 'worn'
+];
+
+const sizes = [
+  'all', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size'
+];
 
 export function Browse() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [conditionFilter, setConditionFilter] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCondition, setSelectedCondition] = useState('all');
+  const [selectedSize, setSelectedSize] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isLiked, setIsLiked] = useState<Record<string, boolean>>({});
 
-  // Get demo items with profiles
-  const items = getItemsWithProfiles();
+  // Fetch items
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ['browse-items'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('items')
+        .select(`
+          *,
+          profiles (
+            id,
+            username,
+            full_name,
+            avatar_url,
+            location
+          )
+        `)
+        .eq('status', 'approved')
+        .eq('is_available', true)
+        .order('created_at', { ascending: false });
 
-  // Filter items based on search and filters
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.profiles?.username.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-    const matchesCondition = conditionFilter === 'all' || item.condition === conditionFilter;
-    
-    return matchesSearch && matchesCategory && matchesCondition;
+      if (error) {
+        console.error('Error fetching items:', error);
+        throw error;
+      }
+
+      return data || [];
+    },
   });
 
-  const getConditionColor = (condition: string) => {
-    switch (condition) {
-      case 'new': return 'bg-green-100 text-green-800';
-      case 'like_new': return 'bg-blue-100 text-blue-800';
-      case 'good': return 'bg-yellow-100 text-yellow-800';
-      case 'fair': return 'bg-orange-100 text-orange-800';
-      case 'worn': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // Filter and sort items
+  const filteredItems = items
+    .filter(item => {
+      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.profiles?.username?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+      const matchesCondition = selectedCondition === 'all' || item.condition === selectedCondition;
+      const matchesSize = selectedSize === 'all' || item.size === selectedSize;
+      
+      return matchesSearch && matchesCategory && matchesCondition && matchesSize;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'points-low':
+          return (a.point_value || 0) - (b.point_value || 0);
+        case 'points-high':
+          return (b.point_value || 0) - (a.point_value || 0);
+        default:
+          return 0;
+      }
+    });
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'tops': return '👕';
-      case 'bottoms': return '👖';
-      case 'dresses': return '👗';
-      case 'outerwear': return '🧥';
-      case 'shoes': return '👟';
-      case 'accessories': return '👜';
-      default: return '👕';
-    }
+  useEffect(() => {
+    gsap.fromTo(
+      '.browse-content',
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }
+    );
+  }, []);
+
+  const toggleLike = (itemId: string) => {
+    setIsLiked(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-accent/5">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <div className="container-apple py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Browse Items</h1>
-          <p className="text-muted-foreground">Discover sustainable fashion items from our community</p>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="mb-8 space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search items, descriptions, or users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+        <div className="mb-8 browse-content">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 rounded-2xl bg-primary/10">
+              <Package className="h-8 w-8 text-primary" />
             </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="tops">Tops</SelectItem>
-                <SelectItem value="bottoms">Bottoms</SelectItem>
-                <SelectItem value="dresses">Dresses</SelectItem>
-                <SelectItem value="outerwear">Outerwear</SelectItem>
-                <SelectItem value="shoes">Shoes</SelectItem>
-                <SelectItem value="accessories">Accessories</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={conditionFilter} onValueChange={setConditionFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Condition" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Conditions</SelectItem>
-                <SelectItem value="new">New</SelectItem>
-                <SelectItem value="like_new">Like New</SelectItem>
-                <SelectItem value="good">Good</SelectItem>
-                <SelectItem value="fair">Fair</SelectItem>
-                <SelectItem value="worn">Worn</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Showing {filteredItems.length} of {items.length} items
-            </p>
-            <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
-              Advanced Filters
-            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Browse Items</h1>
+              <p className="text-muted-foreground">Discover amazing pieces from our community</p>
+            </div>
           </div>
         </div>
 
-        {/* Items Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredItems.map((item) => (
-            <Card key={item.id} className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
-              <CardHeader className="pb-3">
-                <div className="aspect-square overflow-hidden rounded-lg bg-muted">
-                  <img
-                    src={item.image_urls[0]}
-                    alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                  />
+        {/* Filters and Search */}
+        <Card className="card-apple mb-8 browse-content">
+          <CardContent className="p-6">
+            <div className="space-y-6">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search items, descriptions, or users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 focus-ring"
+                />
+              </div>
+
+              {/* Filters Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="focus-ring">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={selectedCondition} onValueChange={setSelectedCondition}>
+                  <SelectTrigger className="focus-ring">
+                    <Package className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Condition" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {conditions.map((condition) => (
+                      <SelectItem key={condition} value={condition}>
+                        {condition === 'all' ? 'All Conditions' : condition.replace('_', ' ').charAt(0).toUpperCase() + condition.replace('_', ' ').slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={selectedSize} onValueChange={setSelectedSize}>
+                  <SelectTrigger className="focus-ring">
+                    <SlidersHorizontal className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sizes.map((size) => (
+                      <SelectItem key={size} value={size}>
+                        {size === 'all' ? 'All Sizes' : size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="focus-ring">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="points-low">Points: Low to High</SelectItem>
+                    <SelectItem value="points-high">Points: High to Low</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant={viewMode === 'grid' ? 'default' : 'outline'}
+                    size="icon"
+                    onClick={() => setViewMode('grid')}
+                    className="flex-1"
+                  >
+                    <Grid3X3 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'outline'}
+                    size="icon"
+                    onClick={() => setViewMode('list')}
+                    className="flex-1"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg font-semibold line-clamp-2 mb-1">
-                      {item.title}
-                    </CardTitle>
-                    <CardDescription className="line-clamp-2 text-sm">
-                      {item.description}
-                    </CardDescription>
+              </div>
+
+              {/* Results Count */}
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found
+                </p>
+                {(searchTerm || selectedCategory !== 'all' || selectedCondition !== 'all' || selectedSize !== 'all') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setSelectedCategory('all');
+                      setSelectedCondition('all');
+                      setSelectedSize('all');
+                    }}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Items Grid/List */}
+        <div className="browse-content">
+          {isLoading ? (
+            <div className={viewMode === 'grid' ? 'card-grid-4' : 'space-y-4'}>
+              {Array.from({ length: 8 }).map((_, index) => (
+                <Card key={index} className="card-apple">
+                  <div className="aspect-square skeleton rounded-xl" />
+                  <CardContent className="p-4 space-y-2">
+                    <div className="h-4 skeleton rounded w-3/4" />
+                    <div className="h-3 skeleton rounded w-1/2" />
+                    <div className="h-8 skeleton rounded w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : filteredItems.length > 0 ? (
+            <div className={viewMode === 'grid' ? 'card-grid-4' : 'space-y-4'}>
+              {filteredItems.map((item) => (
+                <Card key={item.id} className="card-apple hover-lift group">
+                  <div className="image-container aspect-square">
+                    <img
+                      src={item.image_urls?.[0] || '/placeholder.svg'}
+                      alt={item.title}
+                      className="group-hover:scale-105"
+                    />
+                    <div className="absolute top-3 left-3 flex gap-2">
+                      <Badge className="glass">
+                        {item.condition.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                      <Badge className="badge-info">
+                        {item.point_value} pts
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-3 right-3 glass hover:bg-white/20"
+                      onClick={() => toggleLike(item.id)}
+                    >
+                      <Heart className={`h-4 w-4 ${isLiked[item.id] ? 'fill-red-500 text-red-500' : ''}`} />
+                    </Button>
                   </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    {getCategoryIcon(item.category)} {item.category}
-                  </Badge>
-                  <Badge className={`text-xs ${getConditionColor(item.condition)}`}>
-                    {item.condition.replace('_', ' ')}
-                  </Badge>
-                  {item.size && (
-                    <Badge variant="secondary" className="text-xs">
-                      {item.size.toUpperCase()}
-                    </Badge>
-                  )}
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={item.profiles?.avatar_url || ''} />
-                      <AvatarFallback className="text-xs">
-                        {item.profiles?.username?.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium">{item.profiles?.username}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Coins className="h-4 w-4 text-yellow-500" />
-                    <span className="text-sm font-semibold">{item.point_value}</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  <span>{item.profiles?.location}</span>
-                </div>
-                
-                <Button asChild className="w-full">
-                  <Link to={`/item/${item.id}`}>
-                    View Details
-                  </Link>
+                  <CardContent className="p-4">
+                    <div className="space-y-2">
+                      <h3 className="font-semibold line-clamp-1 group-hover:text-primary transition-colors">
+                        {item.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {item.description}
+                      </p>
+                      
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          <span>{item.profiles?.location || 'Location not specified'}</span>
+                        </div>
+                        <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="badge-eco capitalize">
+                            {item.category}
+                          </Badge>
+                          {item.size && (
+                            <Badge variant="outline" className="badge-eco">
+                              {item.size}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      <Button asChild className="w-full btn-secondary">
+                        <Link to={`/item/${item.id}`}>
+                          View Details
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="card-apple">
+              <CardContent className="p-12 text-center">
+                <Package className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No items found</h3>
+                <p className="text-muted-foreground mb-6">
+                  Try adjusting your search criteria or filters to find what you're looking for.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedCategory('all');
+                    setSelectedCondition('all');
+                    setSelectedSize('all');
+                  }}
+                  className="btn-secondary"
+                >
+                  Clear All Filters
                 </Button>
               </CardContent>
             </Card>
-          ))}
+          )}
         </div>
-
-        {filteredItems.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">👕</div>
-            <h3 className="text-xl font-semibold mb-2">No items found</h3>
-            <p className="text-muted-foreground mb-4">
-              Try adjusting your search terms or filters
-            </p>
-            <Button onClick={() => {
-              setSearchTerm('');
-              setCategoryFilter('all');
-              setConditionFilter('all');
-            }}>
-              Clear Filters
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );

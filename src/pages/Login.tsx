@@ -27,7 +27,7 @@ export function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simple validation
+    // Validation
     if (!email || !password) {
       toast({
         title: "Missing information",
@@ -40,17 +40,26 @@ export function Login() {
     setLoading(true);
 
     try {
-      await signIn(email, password);
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully signed in to ReWear.",
-      });
-      navigate('/dashboard');
+      const result = await signIn(email, password);
+      
+      if (result.error) {
+        toast({
+          title: "Sign in failed",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully signed in to ReWear.",
+        });
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       toast({
         title: "Sign in failed",
-        description: "Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {

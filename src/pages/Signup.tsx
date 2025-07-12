@@ -29,7 +29,7 @@ export function Signup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simple validation - just check if fields are not empty
+    // Validation
     if (!email || !password || !username) {
       toast({
         title: "Missing information",
@@ -39,20 +39,39 @@ export function Signup() {
       return;
     }
 
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await signUp(email, password, username);
-      toast({
-        title: "Account created!",
-        description: "Your account has been created successfully. Welcome to ReWear!",
-      });
-      navigate('/dashboard');
+      const result = await signUp(email, password, username);
+      
+      if (result.error) {
+        toast({
+          title: "Sign up failed",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Account created successfully!",
+          description: "Welcome to ReWear! You're now signed in.",
+        });
+        // Navigate to dashboard after successful signup
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       console.error('Signup error:', error);
       toast({
         title: "Sign up failed",
-        description: "Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -116,7 +135,7 @@ export function Signup() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Create a password (any password works)"
+                  placeholder="Create a password (min 6 characters)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10 focus-ring border-input bg-background text-foreground placeholder:text-muted-foreground"
