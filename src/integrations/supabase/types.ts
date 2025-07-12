@@ -14,7 +14,259 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      item_tags: {
+        Row: {
+          item_id: string
+          tag_id: string
+        }
+        Insert: {
+          item_id: string
+          tag_id: string
+        }
+        Update: {
+          item_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_tags_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      items: {
+        Row: {
+          category: Database["public"]["Enums"]["item_category"]
+          condition: Database["public"]["Enums"]["item_condition"]
+          created_at: string | null
+          description: string | null
+          id: string
+          image_urls: string[] | null
+          is_available: boolean | null
+          point_value: number | null
+          size: Database["public"]["Enums"]["clothing_size"] | null
+          status: Database["public"]["Enums"]["item_status"] | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["item_category"]
+          condition: Database["public"]["Enums"]["item_condition"]
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_available?: boolean | null
+          point_value?: number | null
+          size?: Database["public"]["Enums"]["clothing_size"] | null
+          status?: Database["public"]["Enums"]["item_status"] | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["item_category"]
+          condition?: Database["public"]["Enums"]["item_condition"]
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_available?: boolean | null
+          point_value?: number | null
+          size?: Database["public"]["Enums"]["clothing_size"] | null
+          status?: Database["public"]["Enums"]["item_status"] | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      points_log: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          id: string
+          swap_request_id: string | null
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          swap_request_id?: string | null
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          swap_request_id?: string | null
+          transaction_type?: Database["public"]["Enums"]["transaction_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "points_log_swap_request_id_fkey"
+            columns: ["swap_request_id"]
+            isOneToOne: false
+            referencedRelation: "swap_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "points_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          location: string | null
+          points: number | null
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          location?: string | null
+          points?: number | null
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          location?: string | null
+          points?: number | null
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
+      swap_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string | null
+          offered_item_id: string | null
+          owner_id: string
+          points_offered: number | null
+          requested_item_id: string
+          requester_id: string
+          status: Database["public"]["Enums"]["swap_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          offered_item_id?: string | null
+          owner_id: string
+          points_offered?: number | null
+          requested_item_id: string
+          requester_id: string
+          status?: Database["public"]["Enums"]["swap_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          offered_item_id?: string | null
+          owner_id?: string
+          points_offered?: number | null
+          requested_item_id?: string
+          requester_id?: string
+          status?: Database["public"]["Enums"]["swap_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swap_requests_offered_item_id_fkey"
+            columns: ["offered_item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_requested_item_id_fkey"
+            columns: ["requested_item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tags: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +275,23 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      clothing_size: "xs" | "s" | "m" | "l" | "xl" | "xxl" | "xxxl"
+      item_category:
+        | "tops"
+        | "bottoms"
+        | "dresses"
+        | "outerwear"
+        | "shoes"
+        | "accessories"
+      item_condition: "new" | "like_new" | "good" | "fair" | "worn"
+      item_status: "pending" | "approved" | "rejected" | "swapped"
+      swap_status:
+        | "pending"
+        | "accepted"
+        | "rejected"
+        | "completed"
+        | "cancelled"
+      transaction_type: "earned" | "spent" | "refunded"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +418,26 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      clothing_size: ["xs", "s", "m", "l", "xl", "xxl", "xxxl"],
+      item_category: [
+        "tops",
+        "bottoms",
+        "dresses",
+        "outerwear",
+        "shoes",
+        "accessories",
+      ],
+      item_condition: ["new", "like_new", "good", "fair", "worn"],
+      item_status: ["pending", "approved", "rejected", "swapped"],
+      swap_status: [
+        "pending",
+        "accepted",
+        "rejected",
+        "completed",
+        "cancelled",
+      ],
+      transaction_type: ["earned", "spent", "refunded"],
+    },
   },
 } as const
